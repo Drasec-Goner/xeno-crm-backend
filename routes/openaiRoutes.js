@@ -6,44 +6,46 @@ require('dotenv').config();
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 router.post('/parse-prompt', async (req, res) => {
-  const { prompt } = req.body;
+const { prompt } = req.body;
 
-  try {
-    const systemPrompt = `
-You are a rule parser for a CRM platform. Convert plain English into structured rules in JSON.
-Each rule has:
-- field: one of ["spend", "visits", "inactiveDays"]
-- operator: one of ">", "<", "="
-- value: numeric (in days or rupees)
-- logic: "AND" or "OR" (first rule can default to AND)
+try {
+  const systemPrompt = `
+  You are a rule parser for a CRM platform. Convert plain English into structured rules in JSON.
+  Each rule has:
 
-Only return a JSON array. Do not add text or explain.
+  field: one of ["spend", "visits", "inactiveDays"]
 
-Example:
-Input: People who haven’t shopped in 6 months and spent over ₹5K
-Output:
-[
-  { "field": "inactiveDays", "operator": ">", "value": "180", "logic": "AND" },
-  { "field": "spend", "operator": ">", "value": "5000", "logic": "AND" }
-]
-`;
+  operator: one of ">", "<", "="
 
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-3.5-turbo',
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: prompt }
-      ]
-    });
+  value: numeric
 
-    const parsed = completion.choices[0].message.content;
-    const rules = JSON.parse(parsed);
-    res.json({ rules });
+  logic: "AND" or "OR" (first rule can default to AND)
+
+  Only return a JSON array. Do NOT include any text or explanation.
+  `;
+
+  const completion = await openai.chat.completions.create({
+    model: 'gpt-3.5-turbo',
+    messages: [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: prompt }
+    ]
+  });
+
+  const output = completion.choices[0].message.content;
+
+  // Extract JSON array safely
+  const start = output.indexOf('[');
+  const end = output.lastIndexOf(']');
+  const json = output.slice(start, end + 1);
+
+  const rules = JSON.parse(json);
+  res.json({ rules });
   } catch (err) {
-    console.error('OpenAI error:', err.message);
-    res.status(500).json({ error: 'Failed to parse prompt' });
+  console.error('Prompt parse failed:', err.message);
+  res.status(500).json({ error: 'Failed to parse prompt' });
   }
-});
+  });
 
 router.post('/generate-messages', async (req, res) => {
   const { objective } = req.body;
