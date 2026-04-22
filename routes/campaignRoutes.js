@@ -86,10 +86,10 @@ insertedLogs.forEach((log) => {
   setTimeout(async () => {
     try {
       const deliveryStatus = Math.random() < 0.9 ? 'SENT' : 'FAILED';
-      await fetch('http://localhost:5000/api/campaigns/receipt', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ logId: log._id, status: deliveryStatus })
+      await fetch(${process.env.API_BASE_URL || 'http://localhost:5000'}/api/campaigns/receipt, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ logId: log._id, status: deliveryStatus })
       });
     } catch (err) {
       console.error('Simulated vendor call failed:', err.message);
